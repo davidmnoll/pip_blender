@@ -16,6 +16,7 @@ import time
 import pprint
 import ctypes, sys
 import urllib.request
+import ast
 from subprocess import Popen, PIPE
 
 
@@ -43,19 +44,24 @@ def pip_installed():
 
 def pip_install_mod(module_name):
         import pip
-        pm_module_name = pip.__file__
-        command  = "['install', '"+module_name+"']"
+        pm_module_name = 'pip'
+        pm_module_path = pip.__file__
+        command  = "['install', '"+str(module_name)+"']"
+        command = str(command)
+        #args = ['install', module_name]
         print(command)
         pprint(dir(bpy.ops.pip_blender))
-        bpy.ops.pip_blender.console_dia('INVOKE_DEFAULT',module_name=pm_module_name, command=command)
+        bpy.ops.pip_blender.console_dia('INVOKE_DEFAULT', module_name=pm_module_name, command=command, module_path=pm_module_path)
 
 def pip_uninstall_mod(module_name):
         import pip
-        pm_module_name = pip.__file__
-        command  = "['uninstall', '"+module_name+"']"
+        pm_module_name = 'pip'
+        pm_module_path = pip.__file__
+        command  = "['uninstall', '"+str(module_name)+"']"
+        #args = ['uninstall', module_name]
         print(command)
         pprint(dir(bpy.ops.pip_blender))
-        bpy.ops.pip_blender.console_dia('INVOKE_DEFAULT',module_name=pm_module_name, command=command)
+        bpy.ops.pip_blender.console_dia('INVOKE_DEFAULT',module_name=pm_module_name, command=command, module_path=pm_module_path)
 
 
 def update_unInstPack(self, context):
@@ -294,7 +300,10 @@ class DialogOperator(bpy.types.Operator):
     command = bpy.props.StringProperty(name="command")
     console_out = bpy.props.StringProperty(name="console_out")
     console_err = bpy.props.StringProperty(name="console_err")
-    module_name = bpy.props.StringProperty(name="module")
+    module_name = bpy.props.StringProperty(name="module_name")
+    module_path = bpy.props.StringProperty(name="module_path")
+    args = bpy.props.StringProperty(name="args")
+
     stdoutold = ''
     stderrold = ''
     stdinold = ''
@@ -317,14 +326,24 @@ class DialogOperator(bpy.types.Operator):
     def invoke(self, context, event):
         self.event = event
         self.context = context
-        print('Dialog Invoked')
-        try:
-            self.process = Popen(['sudo',self.module_name, ' '.join(self.command)], stdout=PIPE,stderr=PIPE,stdin=PIPE)
-        except Exception as e:
-            print('exception')
-            print(e)
-            return {'CANCELLED'}
-        return self.execute(context)
+        import sys
+        from io import StringIO
+
+        my_buffer = StringIO()
+
+        orig_stdout = sys.stdout
+        sys.stdout = my_buffer
+        args = ast.literal_eval(self.command)
+        pprint(args)
+        #module = __import__(self.module_name)
+        #module.main(self.command)
+
+        sys.stdin.write('Y')
+
+        sys.stdout = orig_stdout
+        print(my_buffer.getvalue())
+        return {'FINISHED'}
+        #return self.execute(context)
 
     def draw(self, context):
         layout = self.layout
