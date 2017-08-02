@@ -303,7 +303,8 @@ class DialogOperator(bpy.types.Operator):
     module_name = bpy.props.StringProperty(name="module_name")
     module_path = bpy.props.StringProperty(name="module_path")
     args = bpy.props.StringProperty(name="args")
-
+    stdout = ''
+    stderr = ''
     stdoutold = ''
     stderrold = ''
     stdinold = ''
@@ -327,65 +328,42 @@ class DialogOperator(bpy.types.Operator):
         self.event = event
         self.context = context
         import sys
-        from io import StringIO
-
-        my_buffer = StringIO()
-
-        orig_stdout = sys.stdout
-        sys.stdout = my_buffer
-        args = ast.literal_eval(self.command)
-        pprint(args)
-        #module = __import__(self.module_name)
-        #module.main(self.command)
-
-        sys.stdin.write('Y')
-
-        sys.stdout = orig_stdout
-        print(my_buffer.getvalue())
-        return {'FINISHED'}
-        #return self.execute(context)
+        import ast
+        return self.execute(context)
 
     def draw(self, context):
         layout = self.layout
         col = layout.column()
-        col.label(text=self.console_out)
+        for line in self.stdout:
+            col.label(text=line)
+        for line in self.stderr:
+            col.label(text=line)
+
         col.prop(self, "console_in", "Input")
 
 
     def execute(self, context):
         print('Dialog executed')
+        module = __import__(self.module_name)
+        listcommand = ast.literal_eval(self.command)
+        module.main(listcommand)
+        self.stdout = sys.stdout
+        self.stderr = sys.stderr
         self.get_from_console(context)
-        self.put_to_console(context, self.console_in)
-        self.console_in = ''
         return {'PASS_THROUGH'}
 
-    def put_to_console(self, context, stdin):
+    def put_to_console(self, context):
         print('Putting to Console')
-        print(self.process.returncode)
-        if(self.process.returncode is None):
-            print('no returncode')
-            self.wm.invoke_props_dialog(self, width=500, height=800)
-            if(self.console_in is not '' and self.console_in is not self.stdinold):
-                self.process.stdin.write(bytes(self.console_in, 'utf-8'))
-            self.execute(context)
-        else:
-            print ('returned')
-            return{'FINISHED'}
+        self.wm.invoke_props_dialog(self, width=500, height=800)
+        if(self.console_in is not '' and self.console_in is not self.stdinold):
+            self.process.stdin.write(bytes(self.console_in, 'utf-8'))
+        self.execute(context)
+        print ('returned')
+        return{'FINISHED'}
 
 
     def get_from_console(self, context):
-        print('Getting From Console')
-        cons_out, cons_err = self.process.communicate()
-        print('cons_out')
-        pprint(cons_out)
-        print('cons_err')
-        pprint(cons_err)
-        if(cons_out):
-            print('console out')
-            self.console_out = str(cons_out, 'utf-8')
-        if(cons_err):
-            print('console error')
-            self.console_err =str(cons_err, 'utf-8')
+        self.wm.invoke_props_dialog(self, width=500, height=800)
         print(self.console_out)
         print(self.console_err)
 
