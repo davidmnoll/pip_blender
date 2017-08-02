@@ -92,21 +92,18 @@ class BlipPreferences(AddonPreferences):
                 layout = self.layout
                 column1 = layout.column()
                 if not pip_installed():
-                    column1.label(icon="ERROR", text="This will install pip for your blender python which may reduce the stability of your blender installation.  It make require administrator access.  It may download a file from the internet.  It will create a symlink to your modules directory.  Do you wish to continue?")
+                    column1.label(icon="ERROR", text="This will install pip for your blender python which may")
+                    column1.label(text="reduce the stability of your blender installation. This can currently only be")
+                    column1.label(text="undone manually.   Do you wish to continue?")
                     column1.operator( __name__+".install_pip", text='Install Pip')
                 else:
-                    column1.operator( __name__+".uninstall_pip", text='Unnstall Pip')
-                column2 = layout.column()
-                row1 = column2.row()
-                row1.label(text="Install package here or use pip_install(example_package) in console")
-                row2 = column2.row()
-                row2.prop(self, "instPack", "Install Package")
-                row2.operator( __name__+".install_pip_pkg", text='Install')
-                row3 = column2.row()
-                row3.label(text="Uninstall package here or use pip_uninstall(example_package) in console")
-                row4 = column2.row()
-                row4.prop(self, "unInstPack", "Uninstall Package")
-                row4.operator( __name__+".uninstall_pip_pkg", text='Uninstall')
+                    column1 = layout.column()
+                    row1 = column1.row()
+                    row1.label(text="Install package (currently cannot uninstall)")
+                    row2 = column1.row()
+                    row2.prop(self, "instPack", "Install Package")
+                    row2.operator( __name__+".install_pip_pkg", text='Install')
+
                 return {'FINISHED'}
 
         def invoke(self, context, event):
@@ -327,8 +324,6 @@ class DialogOperator(bpy.types.Operator):
     def invoke(self, context, event):
         self.event = event
         self.context = context
-        import sys
-        import ast
         return self.execute(context)
 
     def draw(self, context):
@@ -341,17 +336,15 @@ class DialogOperator(bpy.types.Operator):
 
         col.prop(self, "console_in", "Input")
 
-
     def execute(self, context):
         print('Dialog executed')
+        #import pip or easy_install
         module = __import__(self.module_name)
         listcommand = ast.literal_eval(self.command)
         module.main(listcommand)
-        self.stdout = sys.stdout
-        self.stderr = sys.stderr
-        self.get_from_console(context)
-        return {'PASS_THROUGH'}
+        return {'FINISHED'}
 
+    #TODO: Fix this attempt to put prompt response to stdin
     def put_to_console(self, context):
         print('Putting to Console')
         self.wm.invoke_props_dialog(self, width=500, height=800)
@@ -362,6 +355,8 @@ class DialogOperator(bpy.types.Operator):
         return{'FINISHED'}
 
 
+
+    #TODO: Fix this attempt to display info from stdout to prompt
     def get_from_console(self, context):
         self.wm.invoke_props_dialog(self, width=500, height=800)
         print(self.console_out)
